@@ -88,27 +88,39 @@ d(dofs_libres) = K_LL \ F_L;
 F_reacciones = K_global * d;
 Reacciones = F_reacciones(dofs_restringidos) - F_ext(dofs_restringidos);
 
-%% 5. FUERZAS INTERNAS
+%% 5. FUERZAS INTERNAS REALES
+% Inicializamos los contenedores
 Fuerzas_Internas = cell(1, num_elementos);
+F_FEP = cell(1, num_elementos);
 
+% --- DEFINICIÓN DE FUERZAS DE EMPOTRAMIENTO PERFECTO (FEP) ---
+% Estructura para cada barra: [Fx_i; Fy_i; M_i; Fx_j; Fy_j; M_j]
+
+% Elemento 1 (Solo le afecta el Triángulo A) [cite: 128]
+F_FEP{1} = [0; -46.875; -2604.167; 0; -109.375; 3906.25]; 
+
+% Elemento 2 (Triángulo B + Rectángulo E) [cite: 117, 129]
+F_FEP{2} = [0; -203.125; -9114.583; 0; -265.625; 10416.667]; 
+
+% Elemento 3 (Triángulo C + Rectángulo F) [cite: 117, 134]
+F_FEP{3} = [0; -359.375; -15625.000; 0; -421.875; 16927.083]; 
+
+% Elemento 4 (Triángulo D + Rectángulo G) [cite: 117, 130]
+F_FEP{4} = [0; -515.625; -22135.417; 0; -578.125; 23437.500]; 
+
+fprintf('\n--- FUERZAS INTERNAS REALES EN CADA BARRA ---\n');
 for e = 1:num_elementos
-    % 1. Identificar qué nodos forman el elemento
     n_i = conectividad(e, 1);
     n_j = conectividad(e, 2);
     
-    % 2. Obtener los índices de los 6 grados de libertad de esta barra
     idx = [3*n_i-2, 3*n_i-1, 3*n_i, 3*n_j-2, 3*n_j-1, 3*n_j];
-    
-    % 3. Extraer los desplazamientos globales que corresponden a esta barra
     d_elem = d(idx);
     
-    % 4. Calcular las fuerzas internas en los extremos del elemento
-    F_int_elem = K_elems{e} * d_elem;
+    % FÓRMULA CORREGIDA: Restamos el vector FEP de este elemento
+    F_int_elem = (K_elems{e} * d_elem) - F_FEP{e};
     
-    % Guardar en el contenedor
     Fuerzas_Internas{e} = F_int_elem;
     
-    % Mostrar los resultados en la Command Window de forma limpia
     fprintf('Elemento %d (Conecta Nodos %d y %d):\n', e, n_i, n_j);
     nombres_dofs = {'Axial_i (Fx)'; 'Cortante_i (Fy)'; 'Momento_i (M)'; ...
                     'Axial_j (Fx)'; 'Cortante_j (Fy)'; 'Momento_j (M)'};
